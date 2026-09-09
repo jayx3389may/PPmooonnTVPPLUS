@@ -64,7 +64,7 @@ jobs:
         uses: docker/metadata-action@v5
 
         with:
-          images: ghcr.io/mtvpls/moontvplus
+          images: ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value=${{ steps.version.outputs.version }},enable={{is_default_branch}}
             type=raw,value=${{ github.event.inputs.tag || 'latest' }},enable={{is_default_branch}}
