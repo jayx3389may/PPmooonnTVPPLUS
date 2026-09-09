@@ -62,9 +62,8 @@ jobs:
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
-
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ghcr.io/jayx3389may/moontvplus
           tags: |
             type=raw,value=${{ steps.version.outputs.version }},enable={{is_default_branch}}
             type=raw,value=${{ github.event.inputs.tag || 'latest' }},enable={{is_default_branch}}
@@ -78,9 +77,9 @@ jobs:
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           tags: |
-            ghcr.io/mtvpls/moontvplus:${{ steps.version.outputs.version }}
-            ghcr.io/mtvpls/moontvplus:${{ github.event.inputs.tag || 'latest' }}
-          outputs: type=image,name=ghcr.io/mtvpls/moontvplus,name-canonical=true,push=true
+            ghcr.io/jayx3389may/moontvplus:${{ steps.version.outputs.version }}
+            ghcr.io/jayx3389may/moontvplus:${{ github.event.inputs.tag || 'latest' }}
+          outputs: type=image,name=ghcr.io/jayx3389may/moontvplus,name-canonical=true,push=true
 
       - name: Export digest
         run: |
@@ -133,9 +132,9 @@ jobs:
         working-directory: /tmp/digests
         run: |
           docker buildx imagetools create \
-            -t ghcr.io/mtvpls/moontvplus:${{ steps.version.outputs.version }} \
-            -t ghcr.io/mtvpls/moontvplus:${{ github.event.inputs.tag || 'latest' }} \
-            $(printf 'ghcr.io/mtvpls/moontvplus@sha256:%s ' *)
+            -t ghcr.io/jayx3389may/moontvplus:${{ steps.version.outputs.version }} \
+            -t ghcr.io/jayx3389may/moontvplus:${{ github.event.inputs.tag || 'latest' }} \
+            $(printf 'ghcr.io/jayx3389may/moontvplus@sha256:%s ' *)
 
   cleanup-untagged:
     runs-on: ubuntu-latest
@@ -146,7 +145,7 @@ jobs:
         uses: dataaxiom/ghcr-cleanup-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          owner: mtvpls
+          owner: jayx3389may
           package: moontvplus
           delete-untagged: true
           validate: true
