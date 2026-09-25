@@ -1,0 +1,71 @@
+name: Sync Upstream & Trigger Deploy
+
+on:
+  schedule:
+    # 每日定時執行一次（UTC 02:00，對應香港時間朝早 10:00）
+    - cron: '0 2 * * *'
+  workflow_dispatch: # 支援手動一鍵同步
+
+permissions:
+  contents: write
+  actions: write # 必須具備此權限，先能夠調用 gh 指令觸發其他 workflow
+
+jobs:
+  sync-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout local repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git Author
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch & Merge Upstream
+        id: sync
+        run: |
+          # 1. 綁定上游官方倉庫
+          git remote add upstream https://github.com/mtvpls/moontvplus.git
+          git fetch upstream main
+
+          # 2. 比對本地 main 與上游 main 最新提交
+          LOCAL_HASH=$(git rev-parse HEAD)
+          UPSTREAM_HASH=$(git rev-parse upstream/main)
+
+          echo "本地 Commit: $LOCAL_HASH"
+          echo "上游 Commit: $UPSTREAM_HASH"
+
+          if [ "$LOCAL_HASH" = "$UPSTREAM_HASH" ]; then
+            echo "當前已為最新版本，無需同步。"
+            echo "has_updates=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # 3. 嘗試自動快進或合併
+          echo "檢測到上游有更新，開始合併..."
+          git merge upstream/main --no-edit
+
+          # 4. 推送至自己倉庫嘅 main 分支
+          git push origin main
+          echo "has_updates=true" >> $GITHUB_OUTPUT
+
+      - name: Trigger Cloudflare Deployment
+        if: steps.sync.outputs.has_updates == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🚀 正在自動觸發 Cloudflare 重新部署..."
+          gh workflow run "Deploy to Cloudflare" --ref main
+
+      - name: Trigger Docker Image Build (可選)
+        if: steps.sync.outputs.has_updates == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🚀 正在自動觸發 Docker 鏡像構建..."
+          gh workflow run "Build & Push Docker image" --ref main
