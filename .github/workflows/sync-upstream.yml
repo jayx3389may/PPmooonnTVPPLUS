@@ -8,7 +8,7 @@ on:
 
 permissions:
   contents: write
-  actions: write # 必須具備此權限，先能夠調用 gh 指令觸發其他 workflow
+  actions: write # 調用 gh 指令跨 workflow 觸發必須具備此權限
 
 jobs:
   sync-and-deploy:
@@ -18,6 +18,7 @@ jobs:
       - name: Checkout local repository
         uses: actions/checkout@v4
         with:
+          ref: main # 強制簽出 main 分支，避免 Detached HEAD 導致推送失敗
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -29,11 +30,15 @@ jobs:
       - name: Fetch & Merge Upstream
         id: sync
         run: |
-          # 1. 綁定上游官方倉庫
-          git remote add upstream https://github.com/mtvpls/moontvplus.git
+          # 1. 確保本地 main 同遠端 origin/main 完全對齊，徹底解決 non-fast-forward 報錯
+          git checkout main
+          git pull origin main --no-rebase
+
+          # 2. 綁定上游官方倉庫（若已存在則覆蓋更新 URL）
+          git remote add upstream https://github.com/mtvpls/moontvplus.git || git remote set-url upstream https://github.com/mtvpls/moontvplus.git
           git fetch upstream main
 
-          # 2. 比對本地 main 與上游 main 最新提交
+          # 3. 比對本地 main 與上游 main 最新提交
           LOCAL_HASH=$(git rev-parse HEAD)
           UPSTREAM_HASH=$(git rev-parse upstream/main)
 
@@ -46,11 +51,11 @@ jobs:
             exit 0
           fi
 
-          # 3. 嘗試自動快進或合併
+          # 4. 合併上游最新代碼
           echo "檢測到上游有更新，開始合併..."
           git merge upstream/main --no-edit
 
-          # 4. 推送至自己倉庫嘅 main 分支
+          # 5. 推送回自己倉庫嘅 main 分支
           git push origin main
           echo "has_updates=true" >> $GITHUB_OUTPUT
 
