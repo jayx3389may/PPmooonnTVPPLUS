@@ -60,7 +60,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🚀 正在自動觸發 Cloudflare 重新部署..."
-          gh workflow run "Deploy to Cloudflare" --ref main
+          gh workflow run "Deploy to Cloudflare" --repo ${{ github.repository }} --ref main
 
       - name: Trigger Docker Image Build (可選)
         if: steps.sync.outputs.has_updates == 'true'
@@ -68,4 +68,4 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🚀 正在自動觸發 Docker 鏡像構建..."
-          gh workflow run "Build & Push Docker image" --ref main
+          gh workflow run "Build & Push Docker image" --repo ${{ github.repository }} --ref main
