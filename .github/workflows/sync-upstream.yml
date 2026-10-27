@@ -71,12 +71,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🚀 正在自動觸發 Cloudflare 重新部署..."
-          gh workflow run "Deploy to Cloudflare" --repo ${{ github.repository }} --ref main
+          gh workflow run cloudflare-deploy.yml --repo ${{ github.repository }} --ref main
 
-      - name: Trigger Docker Image Build (可選)
+      - name: Trigger Docker Image Build
         if: steps.sync.outputs.has_updates == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🚀 正在自動觸發 Docker 鏡像構建..."
-          gh workflow run "Build & Push Docker image" --repo ${{ github.repository }} --ref main
+          gh workflow run docker-image.yml --repo ${{ github.repository }} --ref main
