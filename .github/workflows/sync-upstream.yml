@@ -8,7 +8,7 @@ on:
 
 permissions:
   contents: write
-  actions: write # 調用 gh 指令跨 workflow 觸發必須具備此權限
+  actions: write
 
 jobs:
   sync-and-deploy:
@@ -18,7 +18,7 @@ jobs:
       - name: Checkout local repository
         uses: actions/checkout@v4
         with:
-          ref: main # 強制簽出 main 分支，避免 Detached HEAD 導致推送失敗
+          ref: main
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -52,9 +52,14 @@ jobs:
             exit 0
           fi
 
-          # 5. 合併上游最新代碼
+          # 5. 合併上游最新代碼（若工作流配置衝突，自動保留本倉庫嘅 .github/workflows 版本）
           echo "檢測到上游有更新，開始合併..."
-          git merge upstream/main --no-edit
+          if ! git merge upstream/main --no-edit; then
+            echo "⚠️ 檢測到配置文件衝突，正在自動保留本倉庫嘅 .github/workflows 自定義配置..."
+            git checkout --ours .github/workflows/
+            git add .github/workflows/
+            git commit -m "chore: merge upstream/main and keep custom workflows"
+          fi
 
           # 6. 推送至自己倉庫
           git push origin main
